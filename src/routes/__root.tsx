@@ -9,6 +9,10 @@ import {
 } from "@tanstack/react-router";
 
 import appCss from "../styles.css?url";
+import { ThemeProvider, CssBaseline } from "@mui/material";
+import { Provider as ReduxProvider } from "react-redux";
+import { muiTheme } from "@/theme/muiTheme";
+import { store } from "@/store";
 
 function NotFoundComponent() {
   return (
@@ -119,7 +123,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <Outlet />
+      <ReduxProvider store={store}>
+        <ThemeProvider theme={muiTheme}>
+          <CssBaseline />
+          <Outlet />
+        </ThemeProvider>
+      </ReduxProvider>
     </QueryClientProvider>
   );
 }
