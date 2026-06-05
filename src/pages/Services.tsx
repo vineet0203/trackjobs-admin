@@ -1,10 +1,77 @@
-import { Breadcrumbs, Button } from "@mui/material";
-import { ChevronRight, Plus, Upload } from "lucide-react";
+import { useState, useEffect } from "react";
+import {
+  Breadcrumbs,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  Typography,
+} from "@mui/material";
+import { ChevronRight, Plus, Upload, AlertTriangle } from "lucide-react";
+import { useSearch, useNavigate } from "@tanstack/react-router";
 import { StatsCards } from "@/components/services/StatsCards";
 import { FilterBar } from "@/components/services/FilterBar";
 import { ServicesTable } from "@/components/services/ServicesTable";
+import { ServiceDialog } from "@/components/services/ServiceDialog";
+import { useAppDispatch } from "@/store";
+import { addService, editService, deleteService } from "@/store/slices/servicesSlice";
+import type { Service } from "@/data/servicesData";
 
 export function ServicesPage() {
+  const dispatch = useAppDispatch();
+  const search = useSearch({ from: "/services" });
+  const navigate = useNavigate({ from: "/services" });
+  
+  // Service Add/Edit Dialog state
+  const [formOpen, setFormOpen] = useState(false);
+  const [selectedService, setSelectedService] = useState<Service | null>(null);
+
+  // Delete Confirmation Dialog state
+  const [deleteOpen, setDeleteOpen] = useState(false);
+  const [deleteId, setDeleteId] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (search.action === "new") {
+      setSelectedService(null);
+      setFormOpen(true);
+      // Clean the search parameter so closing/reopening works correctly
+      navigate({ search: (prev: any) => ({ ...prev, action: undefined }), replace: true });
+    }
+  }, [search.action, navigate]);
+
+  const handleAddNew = () => {
+    setSelectedService(null);
+    setFormOpen(true);
+  };
+
+  const handleEdit = (service: Service) => {
+    setSelectedService(service);
+    setFormOpen(true);
+  };
+
+  const handleDeleteClick = (id: string) => {
+    setDeleteId(id);
+    setDeleteOpen(true);
+  };
+
+  const handleConfirmDelete = () => {
+    if (deleteId) {
+      dispatch(deleteService(deleteId));
+      setDeleteId(null);
+      setDeleteOpen(false);
+    }
+  };
+
+  const handleSaveService = (data: any) => {
+    if (data.id) {
+      dispatch(editService(data));
+    } else {
+      dispatch(addService(data));
+    }
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -18,7 +85,13 @@ export function ServicesPage() {
         </div>
         <div className="flex items-center gap-3">
           <Button variant="outlined" startIcon={<Upload size={16} />} sx={{ height: 44 }}>Import Services</Button>
-          <Button variant="contained" color="primary" startIcon={<Plus size={16} />} sx={{ height: 44, boxShadow: "0 8px 20px -8px rgba(124,58,237,.55)" }}>
+          <Button
+            variant="contained"
+            color="primary"
+            startIcon={<Plus size={16} />}
+            onClick={handleAddNew}
+            sx={{ height: 44, boxShadow: "0 8px 20px -8px rgba(124,58,237,.55)" }}
+          >
             Add New Service
           </Button>
         </div>
@@ -26,7 +99,57 @@ export function ServicesPage() {
 
       <StatsCards />
       <FilterBar />
-      <ServicesTable />
+      <ServicesTable onEdit={handleEdit} onDelete={handleDeleteClick} />
+
+      {/* Add / Edit Form Dialog */}
+      <ServiceDialog
+        open={formOpen}
+        onClose={() => setFormOpen(false)}
+        onSave={handleSaveService}
+        service={selectedService}
+      />
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog
+        open={deleteOpen}
+        onClose={() => setDeleteOpen(false)}
+        slotProps={{
+          paper: {
+            sx: {
+              borderRadius: 3,
+              p: 1,
+              maxWidth: 400,
+            }
+          }
+        }}
+      >
+        <DialogTitle className="flex items-center gap-2 text-red-600 font-bold">
+          <AlertTriangle size={20} className="text-red-500" />
+          Delete Service
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText className="text-gray-600">
+            Are you sure you want to delete this service? This action cannot be undone and the service will be permanently removed.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button
+            onClick={() => setDeleteOpen(false)}
+            variant="outlined"
+            sx={{ borderColor: "#E5E7EB", color: "#4B5563", "&:hover": { borderColor: "#D1D5DB", bgcolor: "#F9FAFB" } }}
+          >
+            Cancel
+          </Button>
+          <Button
+            onClick={handleConfirmDelete}
+            variant="contained"
+            color="error"
+            sx={{ bgcolor: "#EF4444", "&:hover": { bgcolor: "#DC2626" } }}
+          >
+            Delete
+          </Button>
+        </DialogActions>
+      </Dialog>
     </div>
   );
 }

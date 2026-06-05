@@ -28,10 +28,8 @@ const items: Item[] = [
 ];
 
 const subItems = [
-  { label: "All Services", selected: true },
-  { label: "Add New Service" },
-  { label: "Service Categories" },
-  { label: "Service Locations" },
+  { label: "All Services", href: "/services", search: undefined },
+  { label: "Add New Service", href: "/services", search: { action: "new" } },
 ];
 
 export function Sidebar({ open = true }: { open?: boolean }) {
@@ -89,18 +87,24 @@ export function Sidebar({ open = true }: { open?: boolean }) {
               {isActive && (
                 <div className="pl-9 pr-2 mt-1 mb-2 flex flex-col gap-1">
                   {subItems.map((s) => (
-                    <div
+                    <Link
                       key={s.label}
-                      className="flex items-center gap-2 py-1.5 text-[13px] cursor-pointer"
-                      style={{ color: s.selected ? "#111827" : "#6B7280", fontWeight: s.selected ? 700 : 500 }}
+                      to={s.href}
+                      search={s.search}
+                      className="flex items-center gap-2 py-1.5 text-[13px] cursor-pointer text-[#6B7280] font-medium hover:text-[#111827] transition-colors"
+                      activeProps={{ style: { color: "#111827", fontWeight: 700 } }}
                     >
-                      {s.selected ? (
-                        <Dot size={22} className="-ml-1.5" style={{ color: "#7C3AED" }} />
-                      ) : (
-                        <Circle size={6} className="ml-1" fill="#D1D5DB" stroke="none" />
+                      {({ isActive: isSubActive }) => (
+                        <>
+                          {isSubActive ? (
+                            <Dot size={22} className="-ml-1.5" style={{ color: "#7C3AED" }} />
+                          ) : (
+                            <Circle size={6} className="ml-1" fill="#D1D5DB" stroke="none" />
+                          )}
+                          <span>{s.label}</span>
+                        </>
                       )}
-                      <span>{s.label}</span>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               )}

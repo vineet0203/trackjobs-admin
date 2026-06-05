@@ -1,0 +1,370 @@
+import { useState, useEffect } from "react";
+import {
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions,
+  Button,
+  TextField,
+  MenuItem,
+  Box,
+  Typography,
+  CircularProgress,
+} from "@mui/material";
+import { Upload, X, MapPin, Compass } from "lucide-react";
+import type { Service } from "@/data/servicesData";
+
+interface ServiceDialogProps {
+  open: boolean;
+  onClose: () => void;
+  onSave: (serviceData: any) => void;
+  service?: Service | null;
+}
+
+export function ServiceDialog({ open, onClose, onSave, service }: ServiceDialogProps) {
+  const [title, setTitle] = useState("");
+  const [subtitle, setSubtitle] = useState("");
+  const [image, setImage] = useState("");
+  const [price, setPrice] = useState("");
+  const [location, setLocation] = useState("");
+  const [detailedAddress, setDetailedAddress] = useState("");
+  const [latitude, setLatitude] = useState("");
+  const [longitude, setLongitude] = useState("");
+  const [category, setCategory] = useState<Service["category"]>("Home Services");
+
+  const [dragActive, setDragActive] = useState(false);
+  const [fetchingLocation, setFetchingLocation] = useState(false);
+
+  useEffect(() => {
+    if (service) {
+      setTitle(service.title);
+      setSubtitle(service.subtitle);
+      setImage(service.image);
+      setPrice(service.price.replace("PKR ", "").replace("+", ""));
+      setLocation(service.location);
+      setDetailedAddress(service.detailedAddress || "");
+      setCategory(service.category);
+      // Mock latitude and longitude for existing services if they don't have them
+      setLatitude("31.5204");
+      setLongitude("74.3587");
+    } else {
+      setTitle("");
+      setSubtitle("");
+      setImage("");
+      setPrice("");
+      setLocation("Lahore, Pakistan");
+      setDetailedAddress("");
+      setCategory("Home Services");
+      setLatitude("");
+      setLongitude("");
+    }
+  }, [service, open]);
+
+  const handleDrag = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.type === "dragenter" || e.type === "dragover") {
+      setDragActive(true);
+    } else if (e.type === "dragleave") {
+      setDragActive(false);
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setDragActive(false);
+    
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) {
+      const file = e.dataTransfer.files[0];
+      const url = URL.createObjectURL(file);
+      setImage(url);
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      const url = URL.createObjectURL(file);
+      setImage(url);
+    }
+  };
+
+  const handleFetchLocation = () => {
+    if (navigator.geolocation) {
+      setFetchingLocation(true);
+      navigator.geolocation.getCurrentPosition(
+        async (position) => {
+          const lat = position.coords.latitude;
+          const lng = position.coords.longitude;
+          setLatitude(lat.toFixed(6));
+          setLongitude(lng.toFixed(6));
+          
+          try {
+            // Free client-side reverse geocoding via OpenStreetMap Nominatim API (requires no backend/key)
+            const response = await fetch(
+              `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`,
+              {
+                headers: {
+                  "Accept-Language": "en",
+                  "User-Agent": "TrackJobsAdmin/1.0"
+                }
+              }
+            );
+            if (response.ok) {
+              const data = await response.json();
+              const address = data.address || {};
+              const city = address.city || address.town || address.village || address.suburb || "Unknown City";
+              const country = address.country || "Pakistan";
+              const road = address.road || address.suburb || address.neighbourhood || "";
+              const houseNumber = address.house_number || "";
+              
+              setLocation(`${city}, ${country}`);
+              
+              const detailedParts = [houseNumber, road, address.suburb, city, address.state, country].filter(Boolean);
+              setDetailedAddress(detailedParts.join(", ") || data.display_name);
+            } else {
+              setLocation("Lahore, Pakistan");
+              setDetailedAddress(`Fetched Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+            }
+          } catch (e) {
+            console.error("Reverse geocoding error:", e);
+            setLocation("Lahore, Pakistan");
+            setDetailedAddress(`Fetched Coordinates: ${lat.toFixed(6)}, ${lng.toFixed(6)}`);
+          } finally {
+            setFetchingLocation(false);
+          }
+        },
+        (error) => {
+          console.error("Geolocation error:", error);
+          // High-quality fallback for simulator/denied scenarios
+          setLatitude("31.482635");
+          setLongitude("74.370354");
+          setLocation("Lahore, Pakistan");
+          setDetailedAddress("CCA, Phase 5 D.H.A, Lahore, Punjab, Pakistan");
+          setFetchingLocation(false);
+        },
+        { enableHighAccuracy: true, timeout: 8000 }
+      );
+    } else {
+      alert("Geolocation is not supported by your browser.");
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    onSave({
+      id: service?.id,
+      title,
+      subtitle: subtitle || `${category} by Admin`,
+      image: image || "https://images.unsplash.com/photo-1621905251918-48416bd8575a?w=80&h=80&fit=crop",
+      price,
+      location,
+      detailedAddress,
+      category,
+      latitude: parseFloat(latitude) || 0,
+      longitude: parseFloat(longitude) || 0,
+    });
+    onClose();
+  };
+
+  return (
+    <Dialog 
+      open={open} 
+      onClose={onClose} 
+      maxWidth="sm" 
+      fullWidth
+      slotProps={{
+        paper: {
+          sx: {
+            borderRadius: 3,
+            p: 1,
+          }
+        }
+      }}
+    >
+      <form onSubmit={handleSubmit}>
+        <DialogTitle sx={{ fontWeight: 800, fontSize: "1.25rem", pb: 1, color: "#111827" }}>
+          {service ? "Edit Service" : "Add New Service"}
+        </DialogTitle>
+
+        <DialogContent sx={{ display: "flex", flexDirection: "column", gap: 2.5, pt: 1 }}>
+          <TextField
+            label="Service Name"
+            value={title}
+            onChange={(e) => setTitle(e.target.value)}
+            fullWidth
+            required
+            variant="outlined"
+            size="small"
+            sx={{ mt: 1 }}
+          />
+
+          <TextField
+            label="Category"
+            select
+            value={category}
+            onChange={(e) => setCategory(e.target.value as Service["category"])}
+            fullWidth
+            required
+            variant="outlined"
+            size="small"
+          >
+            <MenuItem value="Home Services">Home Services</MenuItem>
+            <MenuItem value="Repair Services">Repair Services</MenuItem>
+            <MenuItem value="Automotive">Automotive</MenuItem>
+            <MenuItem value="Other Services">Other Services</MenuItem>
+          </TextField>
+
+          {/* Custom image upload/dropzone */}
+          <Box className="flex flex-col gap-1.5">
+            <Typography variant="body2" sx={{ fontWeight: 600, color: "#4B5563" }}>
+              Service Image Upload *
+            </Typography>
+            {image ? (
+              <Box className="relative w-full h-36 rounded-lg overflow-hidden border border-[#E5E7EB] bg-[#F9FAFB] flex items-center justify-center">
+                <img src={image} alt="Service preview" className="object-cover w-full h-full" />
+                <button
+                  type="button"
+                  onClick={() => setImage("")}
+                  className="absolute top-2 right-2 bg-white/90 p-1.5 rounded-full hover:bg-white text-gray-500 hover:text-red-500 shadow transition-colors"
+                >
+                  <X size={16} />
+                </button>
+              </Box>
+            ) : (
+              <Box
+                onDragEnter={handleDrag}
+                onDragOver={handleDrag}
+                onDragLeave={handleDrag}
+                onDrop={handleDrop}
+                className={`w-full h-36 border-2 border-dashed rounded-lg flex flex-col items-center justify-center p-4 cursor-pointer transition-all ${
+                  dragActive ? "border-[#7C3AED] bg-[#7C3AED]/5" : "border-[#D1D5DB] hover:border-[#7C3AED] bg-[#F9FAFB] hover:bg-purple-50/20"
+                }`}
+                onClick={() => document.getElementById("file-upload")?.click()}
+              >
+                <input
+                  id="file-upload"
+                  type="file"
+                  accept="image/*"
+                  className="hidden"
+                  onChange={handleFileChange}
+                />
+                <Upload size={24} className="text-[#9CA3AF] mb-2" />
+                <Typography variant="body2" className="text-gray-600 font-semibold text-center">
+                  Drag & drop an image, or <span className="text-[#7C3AED]">browse</span>
+                </Typography>
+                <Typography variant="caption" className="text-gray-400 mt-1 text-center">
+                  PNG, JPG or GIF up to 5MB
+                </Typography>
+              </Box>
+            )}
+            
+            {/* Optional URL input for convenience */}
+            <TextField
+              label="Or enter Image URL"
+              value={image}
+              onChange={(e) => setImage(e.target.value)}
+              fullWidth
+              variant="outlined"
+              size="small"
+              placeholder="https://example.com/image.jpg"
+              sx={{ mt: 0.5 }}
+            />
+          </Box>
+
+          <TextField
+            label="Price (PKR)"
+            value={price}
+            onChange={(e) => setPrice(e.target.value)}
+            fullWidth
+            required
+            variant="outlined"
+            size="small"
+            placeholder="e.g. 1,500+"
+          />
+
+          <Box className="flex items-center justify-between mt-1 flex-wrap gap-2">
+            <Box className="flex items-center gap-1 text-sm font-semibold text-[#4B5563]">
+              <MapPin size={16} className="text-[#9CA3AF]" />
+              <span>Location & Coordinates</span>
+            </Box>
+            <Button
+              type="button"
+              variant="text"
+              size="small"
+              startIcon={fetchingLocation ? <CircularProgress size={14} color="inherit" /> : <Compass size={14} />}
+              onClick={handleFetchLocation}
+              disabled={fetchingLocation}
+              sx={{ color: "#7C3AED", textTransform: "none", fontWeight: 600, "&:hover": { bgcolor: "#7C3AED/10" } }}
+            >
+              {fetchingLocation ? "Fetching..." : "Fetch Current Location"}
+            </Button>
+          </Box>
+
+          <TextField
+            label="Location Address"
+            value={location}
+            onChange={(e) => setLocation(e.target.value)}
+            fullWidth
+            required
+            variant="outlined"
+            size="small"
+            placeholder="e.g. Lahore, Pakistan"
+          />
+
+          <TextField
+            label="Detailed Address"
+            value={detailedAddress}
+            onChange={(e) => setDetailedAddress(e.target.value)}
+            fullWidth
+            required
+            multiline
+            rows={2}
+            variant="outlined"
+            size="small"
+            placeholder="e.g. House 45-B, Sector Z, Phase 3, Lahore"
+          />
+
+          <Box className="grid grid-cols-2 gap-3">
+            <TextField
+              label="Latitude"
+              value={latitude}
+              onChange={(e) => setLatitude(e.target.value)}
+              required
+              variant="outlined"
+              size="small"
+              placeholder="e.g. 31.5204"
+            />
+            <TextField
+              label="Longitude"
+              value={longitude}
+              onChange={(e) => setLongitude(e.target.value)}
+              required
+              variant="outlined"
+              size="small"
+              placeholder="e.g. 74.3587"
+            />
+          </Box>
+        </DialogContent>
+
+        <DialogActions sx={{ px: 3, pb: 2, pt: 1.5, gap: 1 }}>
+          <Button onClick={onClose} variant="outlined" sx={{ borderColor: "#E5E7EB", color: "#4B5563", "&:hover": { borderColor: "#D1D5DB", bgcolor: "#F9FAFB" } }}>
+            Cancel
+          </Button>
+          <Button 
+            type="submit" 
+            variant="contained" 
+            sx={{ 
+              bgcolor: "#7C3AED", 
+              "&:hover": { bgcolor: "#6D28D9" },
+              boxShadow: "0 4px 12px -2px rgba(124,58,237,.3)"
+            }}
+          >
+            {service ? "Save Changes" : "Create Service"}
+          </Button>
+        </DialogActions>
+      </form>
+    </Dialog>
+  );
+}

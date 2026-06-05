@@ -7,6 +7,7 @@ export interface Service {
   finance: { amount: string; label: string };
   category: "Home Services" | "Repair Services" | "Automotive" | "Other Services";
   location: string;
+  detailedAddress?: string;
   price: string;
   status: "Published" | "Pending" | "Draft";
   featured: boolean;

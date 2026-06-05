@@ -2,10 +2,11 @@ import { Paper, Table, TableBody, TableCell, TableContainer, TableHead, TableRow
 import { useAppSelector } from "@/store";
 import { ServiceTableRow } from "./ServiceTableRow";
 import { TablePagination } from "@/components/ui/TablePagination";
+import type { Service } from "@/data/servicesData";
 
 const headers = ["ID", "Service", "Vendor", "Finance", "Category", "Location", "Price", "Status", "Featured", "Date Added", "Actions"];
 
-export function ServicesTable() {
+export function ServicesTable({ onEdit, onDelete }: { onEdit: (s: Service) => void; onDelete: (id: string) => void }) {
   const { services, searchQuery, categoryFilter, locationFilter, statusFilter } = useAppSelector((s) => s.services);
 
   const filtered = services.filter((s) => {
@@ -26,7 +27,7 @@ export function ServicesTable() {
             </TableRow>
           </TableHead>
           <TableBody>
-            {filtered.map((s, i) => <ServiceTableRow key={s.id} s={s} index={i} />)}
+            {filtered.map((s, i) => <ServiceTableRow key={s.id} s={s} index={i} onEdit={onEdit} onDelete={onDelete} />)}
           </TableBody>
         </Table>
       </TableContainer>

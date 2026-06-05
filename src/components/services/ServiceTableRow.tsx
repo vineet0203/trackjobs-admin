@@ -1,14 +1,24 @@
 import { TableRow, TableCell, Avatar, IconButton } from "@mui/material";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
-import { Eye, Pencil, MapPin, MoreVertical } from "lucide-react";
+import { Eye, Pencil, MapPin, Trash2 } from "lucide-react";
 import type { Service } from "@/data/servicesData";
 import { VendorAvatar } from "@/components/ui/VendorAvatar";
 import { CategoryBadge } from "@/components/ui/CategoryBadge";
 import { StatusBadge } from "@/components/ui/StatusBadge";
 import { FeaturedToggle } from "@/components/ui/FeaturedToggle";
 
-export function ServiceTableRow({ s, index }: { s: Service; index: number }) {
+export function ServiceTableRow({ 
+  s, 
+  index,
+  onEdit,
+  onDelete,
+}: { 
+  s: Service; 
+  index: number;
+  onEdit: (s: Service) => void;
+  onDelete: (id: string) => void;
+}) {
   const d = new Date(s.dateAdded);
   return (
     <TableRow
@@ -50,8 +60,8 @@ export function ServiceTableRow({ s, index }: { s: Service; index: number }) {
       <TableCell>
         <div className="flex items-center gap-0.5">
           <IconButton size="small"><Eye size={16} className="text-[#9CA3AF]" /></IconButton>
-          <IconButton size="small"><Pencil size={16} className="text-[#9CA3AF]" /></IconButton>
-          <IconButton size="small"><MoreVertical size={16} className="text-[#9CA3AF]" /></IconButton>
+          <IconButton size="small" onClick={() => onEdit(s)}><Pencil size={16} className="text-[#7C3AED]" /></IconButton>
+          <IconButton size="small" onClick={() => onDelete(s.id)}><Trash2 size={16} className="text-red-500" /></IconButton>
         </div>
       </TableCell>
     </TableRow>
