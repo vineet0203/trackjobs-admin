@@ -1,4 +1,4 @@
-import { TableRow, TableCell, Avatar, IconButton } from "@mui/material";
+import { TableRow, TableCell, Avatar, IconButton, Box } from "@mui/material";
 import { motion } from "framer-motion";
 import { format } from "date-fns";
 import { Eye, Pencil, MapPin, Trash2 } from "lucide-react";
@@ -36,6 +36,25 @@ export function ServiceTableRow({
       transition={{ delay: index * 0.05 }}
       sx={{ "&:hover": { bgcolor: "#F9FAFB" }, "& td": { borderColor: "#F3F4F6", py: 1.5 } }}
     >
+      <TableCell align="center">
+        <Box
+          sx={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            width: 24,
+            height: 24,
+            borderRadius: "50%",
+            bgcolor: "#F3E8FF",
+            color: "#7C3AED",
+            fontSize: 12,
+            fontWeight: 700,
+            mx: "auto"
+          }}
+        >
+          {index + 1}
+        </Box>
+      </TableCell>
       <TableCell sx={{ color: "#6B7280", fontSize: 13, fontFamily: "ui-monospace, SFMono-Regular, monospace" }}>{s.id}</TableCell>
       <TableCell>
         <div className="flex items-center gap-3">

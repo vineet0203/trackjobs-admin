@@ -5,6 +5,7 @@ export interface ServiceCategory {
   name: string;
   slug: string;
   description: string | null;
+  price?: number | null;
   icon: string | null;
   is_active: boolean;
   sort_order: number;
@@ -18,6 +19,7 @@ export interface ServiceSubCategory {
   name: string;
   slug: string;
   description: string | null;
+  price?: number | null;
   icon: string | null;
   is_active: boolean;
   sort_order: number;

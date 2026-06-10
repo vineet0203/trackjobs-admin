@@ -3,6 +3,7 @@ import { BadgeCheck } from "lucide-react";
 import type { Service } from "@/data/servicesData";
 
 export function VendorAvatar({ vendor }: { vendor: Service["vendor"] }) {
+  if (!vendor) return null;
   return (
     <div className="flex items-center gap-2">
       {vendor.avatar ? (

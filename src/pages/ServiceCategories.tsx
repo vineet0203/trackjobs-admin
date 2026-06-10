@@ -30,6 +30,8 @@ import {
   Pencil,
   Trash2,
   FolderOpen,
+  X,
+  Search,
 } from "lucide-react";
 import {
   serviceCategoryService,
@@ -53,7 +55,9 @@ export function ServiceCategoriesPage() {
   // Input fields
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
+  const [price, setPrice] = useState("");
   const [parentCategoryId, setParentCategoryId] = useState<number>(0);
+  const [searchQuery, setSearchQuery] = useState("");
 
   // Delete Confirmation States
   const [deleteOpen, setDeleteOpen] = useState(false);
@@ -94,6 +98,7 @@ export function ServiceCategoriesPage() {
     setType("main");
     setName("");
     setDescription("");
+    setPrice("");
     setParentCategoryId(categories[0]?.id || 0);
     setFormOpen(true);
   };
@@ -104,6 +109,7 @@ export function ServiceCategoriesPage() {
     setType("sub");
     setName("");
     setDescription("");
+    setPrice("");
     setParentCategoryId(parentCatId);
     setFormOpen(true);
   };
@@ -114,6 +120,7 @@ export function ServiceCategoriesPage() {
     setType("main");
     setName(category.name);
     setDescription(category.description || "");
+    setPrice(category.price !== undefined && category.price !== null ? String(category.price) : "");
     setFormOpen(true);
   };
 
@@ -123,6 +130,7 @@ export function ServiceCategoriesPage() {
     setType("sub");
     setName(sub.name);
     setDescription(sub.description || "");
+    setPrice(sub.price !== undefined && sub.price !== null ? String(sub.price) : "");
     setParentCategoryId(sub.service_category_id);
     setFormOpen(true);
   };
@@ -171,6 +179,7 @@ export function ServiceCategoriesPage() {
       .replace(/[\s-]+/g, "_");
 
     try {
+      const parsedPrice = price ? parseFloat(price) : null;
       if (type === "main") {
         if (selectedCategory) {
           // Edit Category
@@ -178,6 +187,7 @@ export function ServiceCategoriesPage() {
             name,
             slug: selectedCategory.slug, // Keep original slug
             description,
+            price: parsedPrice,
             icon: selectedCategory.icon,
             sort_order: selectedCategory.sort_order,
           });
@@ -189,6 +199,7 @@ export function ServiceCategoriesPage() {
             name,
             slug: generatedSlug,
             description,
+            price: parsedPrice,
             icon: "FolderOpen",
             sort_order: categories.length + 1,
           });
@@ -200,6 +211,7 @@ export function ServiceCategoriesPage() {
           setParentCategoryId(created.id);
           setName("");
           setDescription("");
+          setPrice("");
           toast.info(`Now, please add a sub-service under "${created.name}"`);
           return;
         }
@@ -211,6 +223,7 @@ export function ServiceCategoriesPage() {
             name,
             slug: selectedSubCategory.slug, // Keep original slug
             description,
+            price: parsedPrice,
             icon: selectedSubCategory.icon,
             sort_order: selectedSubCategory.sort_order,
           });
@@ -224,6 +237,7 @@ export function ServiceCategoriesPage() {
             name,
             slug: generatedSlug,
             description,
+            price: parsedPrice,
             icon: "FileText",
             sort_order: parentSubs.length + 1,
           });
@@ -260,6 +274,47 @@ export function ServiceCategoriesPage() {
     }
   };
 
+  // Search filtering logic
+  const filteredCategories = categories.filter((category) => {
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return true;
+
+    const catMatch =
+      category.name.toLowerCase().includes(query) ||
+      (category.slug || "").toLowerCase().includes(query) ||
+      (category.description || "").toLowerCase().includes(query) ||
+      (category.price !== undefined && category.price !== null && String(category.price).includes(query));
+
+    if (catMatch) return true;
+
+    const categorySubs = subCategories.filter(
+      (sub) => sub.service_category_id === category.id
+    );
+    const subMatch = categorySubs.some((sub) =>
+      sub.name.toLowerCase().includes(query) ||
+      (sub.slug || "").toLowerCase().includes(query) ||
+      (sub.description || "").toLowerCase().includes(query) ||
+      (sub.price !== undefined && sub.price !== null && String(sub.price).includes(query))
+    );
+
+    return subMatch;
+  });
+
+  const getFilteredSubCategories = (catId: number) => {
+    const categorySubs = subCategories.filter(
+      (sub) => sub.service_category_id === catId
+    );
+    const query = searchQuery.toLowerCase().trim();
+    if (!query) return categorySubs;
+
+    return categorySubs.filter((sub) =>
+      sub.name.toLowerCase().includes(query) ||
+      (sub.slug || "").toLowerCase().includes(query) ||
+      (sub.description || "").toLowerCase().includes(query) ||
+      (sub.price !== undefined && sub.price !== null && String(sub.price).includes(query))
+    );
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -284,16 +339,45 @@ export function ServiceCategoriesPage() {
         </div>
       </div>
 
+      {/* Real-time Search Input Field */}
+      <Box sx={{ display: "flex", alignItems: "center", gap: 2, bgcolor: "#fff", p: 2, borderRadius: 3, border: "1px solid #E5E7EB" }}>
+        <TextField
+          placeholder="Search services..."
+          value={searchQuery}
+          onChange={(e) => setSearchQuery(e.target.value)}
+          size="small"
+          sx={{
+            width: "100%",
+            maxWidth: 400,
+            "& .MuiOutlinedInput-root": {
+              borderRadius: 2,
+            }
+          }}
+          slotProps={{
+            input: {
+              startAdornment: <Search size={18} className="text-[#9CA3AF] mr-2" />,
+              endAdornment: searchQuery && (
+                <IconButton size="small" onClick={() => setSearchQuery("")}>
+                  <X size={16} />
+                </IconButton>
+              )
+            }
+          }}
+        />
+      </Box>
+
       <Paper sx={{ border: "1px solid #E5E7EB", borderRadius: 3, overflow: "hidden", bgcolor: "#fff" }}>
         <TableContainer>
           <Table sx={{ minWidth: 800 }}>
             <TableHead>
               <TableRow sx={{ "& th": { bgcolor: "#fff", borderColor: "#E5E7EB", color: "#6B7280", fontSize: 11, fontWeight: 700, letterSpacing: ".05em", textTransform: "uppercase", py: 2 } }}>
+                <TableCell width={60} align="center">No.</TableCell>
                 <TableCell width={50}></TableCell>
                 <TableCell width={100}>Sort Order</TableCell>
                 <TableCell>Name</TableCell>
                 <TableCell>Slug</TableCell>
                 <TableCell>Description</TableCell>
+                <TableCell>Price (USD)</TableCell>
                 <TableCell>Status</TableCell>
                 <TableCell align="right" sx={{ pr: 3 }}>Actions</TableCell>
               </TableRow>
@@ -301,27 +385,45 @@ export function ServiceCategoriesPage() {
             <TableBody>
               {loading ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6, color: "#6B7280" }}>
+                  <TableCell colSpan={9} align="center" sx={{ py: 6, color: "#6B7280" }}>
                     Loading categories and subcategories...
                   </TableCell>
                 </TableRow>
-              ) : categories.length === 0 ? (
+              ) : filteredCategories.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} align="center" sx={{ py: 6, color: "#6B7280" }}>
-                    No service categories found. Add your first category!
+                  <TableCell colSpan={9} align="center" sx={{ py: 6, color: "#6B7280" }}>
+                    {searchQuery ? "No matching service categories found." : "No service categories found. Add your first category!"}
                   </TableCell>
                 </TableRow>
               ) : (
-                categories.map((category) => {
+                filteredCategories.map((category, index) => {
                   const isExpanded = !!expandedRows[category.id];
-                  const categorySubs = subCategories.filter(
-                    (sub) => sub.service_category_id === category.id
-                  );
+                  const categorySubs = getFilteredSubCategories(category.id);
 
                   return (
                     <React.Fragment key={category.id}>
                       {/* Main Category Row */}
                       <TableRow sx={{ "&:hover": { bgcolor: "#F9FAFB" }, "& td": { borderColor: "#F3F4F6", py: 1.5 } }}>
+                        {/* Styled Badge for Sequential Number */}
+                        <TableCell align="center">
+                          <Box
+                            sx={{
+                              display: "flex",
+                              alignItems: "center",
+                              justifyContent: "center",
+                              width: 24,
+                              height: 24,
+                              borderRadius: "50%",
+                              bgcolor: "#F3E8FF",
+                              color: "#7C3AED",
+                              fontSize: 12,
+                              fontWeight: 700,
+                              mx: "auto"
+                            }}
+                          >
+                            {index + 1}
+                          </Box>
+                        </TableCell>
                         <TableCell>
                           <IconButton size="small" onClick={() => toggleRow(category.id)}>
                             <ChevronDown
@@ -344,6 +446,9 @@ export function ServiceCategoriesPage() {
                         </TableCell>
                         <TableCell sx={{ color: "#6B7280", fontSize: 13, maxWidth: 250, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>
                           {category.description || "-"}
+                        </TableCell>
+                        <TableCell sx={{ color: "#111827", fontSize: 13, fontWeight: 600 }}>
+                          {category.price !== undefined && category.price !== null ? `$${category.price}` : "-"}
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-1">
@@ -381,7 +486,7 @@ export function ServiceCategoriesPage() {
 
                       {/* Expandable Sub-Categories Sub-Table */}
                       <TableRow>
-                        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={7}>
+                        <TableCell style={{ paddingBottom: 0, paddingTop: 0 }} colSpan={9}>
                           <Collapse in={isExpanded} timeout="auto" unmountOnExit>
                             <Box sx={{ margin: 2, bgcolor: "#FBFDFF", border: "1px solid #EBF3FC", borderRadius: 2, p: 2 }}>
                               <Typography variant="subtitle2" gutterBottom component="div" sx={{ fontWeight: 700, color: "#4B5563", mb: 1.5, display: "flex", alignItems: "center", gap: 1 }}>
@@ -389,27 +494,52 @@ export function ServiceCategoriesPage() {
                               </Typography>
                               {categorySubs.length === 0 ? (
                                 <Typography variant="body2" sx={{ color: "#9CA3AF", py: 1, fontStyle: "italic" }}>
-                                  No sub-services added yet. Click "Add Sub-service" to add one.
+                                  {searchQuery ? "No matching sub-services under this category." : "No sub-services added yet. Click \"Add Sub-service\" to add one."}
                                 </Typography>
                               ) : (
                                 <Table size="small" aria-label="subcategories">
                                   <TableHead>
                                     <TableRow sx={{ "& th": { color: "#6B7280", fontWeight: 600, fontSize: 11, borderBottom: "1px solid #E5E7EB" } }}>
+                                      <TableCell width={60} align="center">No.</TableCell>
                                       <TableCell width={100}>Sort Order</TableCell>
                                       <TableCell>Name</TableCell>
                                       <TableCell>Slug</TableCell>
                                       <TableCell>Description</TableCell>
+                                      <TableCell>Price (USD)</TableCell>
                                       <TableCell>Status</TableCell>
                                       <TableCell align="right">Actions</TableCell>
                                     </TableRow>
                                   </TableHead>
                                   <TableBody>
-                                    {categorySubs.map((sub) => (
+                                    {categorySubs.map((sub, subIndex) => (
                                       <TableRow key={sub.id} sx={{ "&:hover": { bgcolor: "#F3F8FC" }, "& td": { py: 1, borderBottom: "1px solid #F3F4F6" } }}>
+                                        {/* Styled Sub-service Badge */}
+                                        <TableCell align="center">
+                                          <Box
+                                            sx={{
+                                              display: "flex",
+                                              alignItems: "center",
+                                              justifyContent: "center",
+                                              width: 20,
+                                              height: 20,
+                                              borderRadius: "50%",
+                                              bgcolor: "#E0F2FE",
+                                              color: "#0284C7",
+                                              fontSize: 11,
+                                              fontWeight: 700,
+                                              mx: "auto"
+                                            }}
+                                          >
+                                            {subIndex + 1}
+                                          </Box>
+                                        </TableCell>
                                         <TableCell sx={{ fontWeight: 600 }}>{sub.sort_order}</TableCell>
                                         <TableCell sx={{ fontWeight: 600, color: "#1F2937" }}>{sub.name}</TableCell>
                                         <TableCell sx={{ fontFamily: "monospace", fontSize: 12 }}>{sub.slug}</TableCell>
                                         <TableCell sx={{ color: "#6B7280", fontSize: 12 }}>{sub.description || "-"}</TableCell>
+                                        <TableCell sx={{ color: "#111827", fontSize: 12, fontWeight: 600 }}>
+                                          {sub.price !== undefined && sub.price !== null ? `$${sub.price}` : "-"}
+                                        </TableCell>
                                         <TableCell>
                                           <div className="flex items-center gap-1">
                                             <Switch
@@ -512,6 +642,22 @@ export function ServiceCategoriesPage() {
                 required
                 fullWidth
                 size="small"
+              />
+
+              <TextField
+                label="Price (USD)"
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                fullWidth
+                size="small"
+                type="number"
+                slotProps={{
+                  htmlInput: {
+                    step: "0.01",
+                    min: "0"
+                  }
+                }}
+                placeholder="0.00"
               />
 
               <TextField

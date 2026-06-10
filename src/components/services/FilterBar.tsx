@@ -1,5 +1,5 @@
-import { Paper, TextField, InputAdornment, MenuItem, Button } from "@mui/material";
-import { Search, SlidersHorizontal } from "lucide-react";
+import { Paper, TextField, InputAdornment, MenuItem, Button, IconButton } from "@mui/material";
+import { Search, SlidersHorizontal, X } from "lucide-react";
 import { useAppDispatch, useAppSelector } from "@/store";
 import { setCategory, setLocation, setSearch, setStatus } from "@/store/slices/servicesSlice";
 
@@ -28,6 +28,13 @@ export function FilterBar() {
                 <Search size={16} color="#9CA3AF" />
               </InputAdornment>
             ),
+            endAdornment: searchQuery && (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => dispatch(setSearch(""))}>
+                  <X size={16} color="#9CA3AF" />
+                </IconButton>
+              </InputAdornment>
+            )
           },
         }}
       />
